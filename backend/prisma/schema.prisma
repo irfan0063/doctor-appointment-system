@@ -1,0 +1,165 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+enum AppointmentStatus {
+  BOOKED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+enum PaymentMethod {
+  CASH
+  JAZZCASH
+  EASYPAISA
+  CARD
+  BANK_TRANSFER
+}
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(RECEPTIONIST)
+  doctor       Doctor?
+  createdAt    DateTime @default(now())
+}
+
+model Doctor {
+  id                 String        @id @default(uuid())
+  fullName           String
+  pmdcNumber         String        @unique
+  specialty          String
+  qualification      String?
+  phone              String
+  city               String?
+  clinicName         String?
+  bio                String?
+  experienceYears    Int           @default(0)
+  consultationFeePkr Int           @default(0)
+  availableDays      String[]
+  isActive           Boolean       @default(true)
+  userId             String?       @unique
+  user               User?         @relation(fields: [userId], references: [id])
+  appointments       Appointment[]
+  bookings           Booking[]
+  reviews            Review[]
+  createdAt          DateTime      @default(now())
+}
+
+model Patient {
+  id                  String        @id @default(uuid())
+  mrn                 Int           @unique @default(autoincrement())
+  fullName            String
+  fatherOrHusbandName String?
+  cnic                String?       @unique
+  phone               String
+  dateOfBirth         DateTime?
+  gender              Gender?
+  bloodGroup          String?
+  city                String?
+  address             String?
+  allergies           String?
+  chronicConditions   String?
+  emergencyContact    String?
+  appointments        Appointment[]
+  bookings            Booking[]
+  reviews             Review[]
+  createdAt           DateTime      @default(now())
+}
+
+model Appointment {
+  id              String            @id @default(uuid())
+  doctorId        String
+  patientId       String
+  appointmentDate DateTime
+  status          AppointmentStatus @default(BOOKED)
+  reason          String?
+  vitals          Json?
+  feePkr          Int               @default(0)
+  doctor          Doctor            @relation(fields: [doctorId], references: [id])
+  patient         Patient           @relation(fields: [patientId], references: [id])
+  prescriptions   Prescription[]
+  payments        Payment[]
+  booking         Booking?
+  review          Review?
+  createdAt       DateTime          @default(now())
+
+  @@index([doctorId, appointmentDate])
+}
+
+model Prescription {
+  id            String      @id @default(uuid())
+  appointmentId String
+  diagnosis     String
+  notes         String?
+  medicines     Json
+  labTests      String[]
+  followUpDate  DateTime?
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  appointmentId String
+  amountPkr     Int
+  method        PaymentMethod @default(CASH)
+  reference     String?
+  paidAt        DateTime      @default(now())
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  doctorId        String
+  patientId       String
+  appointmentId   String?       @unique
+  bookingDate     DateTime
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  doctor          Doctor        @relation(fields: [doctorId], references: [id])
+  patient         Patient       @relation(fields: [patientId], references: [id])
+  appointment     Appointment?  @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdAt       DateTime      @default(now())
+
+  @@index([doctorId, bookingDate])
+}
+
+model Review {
+  id            String      @id @default(uuid())
+  doctorId      String
+  patientId     String
+  appointmentId String?     @unique
+  rating        Int
+  comment       String
+  doctor        Doctor      @relation(fields: [doctorId], references: [id])
+  patient       Patient     @relation(fields: [patientId], references: [id])
+  appointment   Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+
+  @@index([doctorId, createdAt])
+}

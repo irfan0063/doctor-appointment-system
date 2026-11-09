@@ -1,0 +1,21 @@
+# Dependencies and build output
+node_modules/
+frontend/node_modules/
+frontend/.next/
+backend/node_modules/
+backend/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+frontend/.env.local
+backend/.env
+
+# Generated files
+frontend/tsconfig.tsbuildinfo
+backend/src/generated/
+
+# OS and logs
+.DS_Store
+*.log
